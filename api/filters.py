@@ -9,3 +9,4 @@ class ApplicationFilter(FilterSet):
     class Meta:
         model = Application
         fields = ['author_client', ]
+        
