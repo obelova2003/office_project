@@ -3,8 +3,15 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser 
 
 ROLES = (
+    ('client', 'Клиент'),
     ('manager', 'Менеджер'),
-    ('client', 'Клиент')
+    ('director', 'Директор')
+)
+
+STATUS = (
+    ('created', 'создана'),
+    ('work', 'в работе'),
+    ('executed', 'исполнена'),
 )
 class OfficeUser(AbstractUser):
     username = models.CharField(max_length=150,
@@ -16,7 +23,7 @@ class OfficeUser(AbstractUser):
                                  verbose_name='Фамилия')
     email = models.EmailField(max_length=254, unique=True,
                               verbose_name='Почта')
-    role = models.CharField(max_length=10, choices=ROLES, default='client')
+    role = models.CharField(max_length=10, choices=ROLES)
     manager = models.ForeignKey("OfficeUser",
                                 on_delete=models.CASCADE,
                                 null=True,
@@ -26,5 +33,52 @@ class OfficeUser(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
+    @property
+    def is_manager(self):
+        return self.role == 'manager'
+
+    @property
+    def is_client(self):
+        return self.role == 'client'
+    
+    @property
+    def is_director(self):
+        return self.role == 'director'
+
     def __str__(self):
         return self.username
+    
+
+class Report(models.Model):
+    number = models.IntegerField(verbose_name='Номер')
+    title = models.CharField(max_length=250, verbose_name='Заголовок')
+    text = models.TextField(verbose_name='Текст')
+
+    class Meta:
+        verbose_name = 'Отчет'
+        verbose_name_plural = 'Отчеты'
+
+    def __str__(self):
+        return f'Отчет № {self.number}'
+
+
+class Application(models.Model):
+    number = models.IntegerField(verbose_name='Номер')
+    author_client = models.ForeignKey("OfficeUser",
+                                        on_delete=models.CASCADE,
+                                        null=True,
+                                        blank=True)
+    title = models.CharField(max_length=250, verbose_name='Заголовок')
+    storage_name_from  = models.CharField(max_length=250, verbose_name='Хранилище начальное')
+    storage_name_to = models.CharField(max_length=250, verbose_name='Хранилище конечное')
+    status = models.CharField(max_length=100, choices=STATUS, verbose_name='Статус')
+    count = models.IntegerField(verbose_name='Кол-во')
+    create_date = models.DateField(auto_now_add=True, verbose_name='Дата создания')
+    update_date = models.DateField(auto_now=True, verbose_name='Дата редактирования')
+
+    class Meta:
+        verbose_name = 'Заявка'
+        verbose_name_plural = 'Заявки'
+
+    def __str__(self):
+        return f'Заявка № {self.number}'
