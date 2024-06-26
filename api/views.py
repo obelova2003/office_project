@@ -158,8 +158,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         elif self.request.user.role == 'manager':
             manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
             author_clients = [c.id for c in manager_clients]
-            params = (dict(self.request.query_params))['author_client']
-            params = list(map(int, params))
+            params = []
+            if self.request.query_params:
+                params = (dict(self.request.query_params))['author_client']
+                params = list(map(int, params))
             if [i for i in params if i in author_clients] or (not self.request.query_params):
                 queryset = Application.objects.filter(author_client__in=[c.id for c in manager_clients])
                 queryset = self.filter_queryset(queryset)
@@ -168,7 +170,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             else:
                 raise Exception
         else:
-            queryset = self.filter_queryset(queryset)
+            queryset = self.filter_queryset(self.queryset)
             print(self.request.query_params)
             serializer = serializers.ApplicationGetSerializers(queryset, many=True)
             return Response(serializer.data)
@@ -184,4 +186,4 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
-    
+        
