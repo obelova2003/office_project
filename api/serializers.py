@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import OfficeUser, Report, Application
+from .models import OfficeUser, Report, Application, Storage
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -79,4 +79,10 @@ class ApplicationSerializer(serializers.ModelSerializer):
 class ApplicationGetSerializers(serializers.ModelSerializer):
     class Meta:
         model = Application
+        fields = '__all__'
+
+
+class StorageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Storage
         fields = '__all__'

@@ -1,7 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework.response import Response
 from rest_framework import viewsets, status
-from api.models import OfficeUser, Report, Application
+from api.models import OfficeUser, Report, Application, Storage
 from api import serializers
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import make_password
@@ -9,9 +9,9 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from api.permissions import ManagerRole, ClientRole, CanSeeApplications
+from api.permissions import ManagerRole, ClientRole, CanSeeApplications, DirectorRole
 from api.filters import ApplicationFilter
-from api.exceptions import Exception
+from api.exceptions import PermissionDeniedException
 from django_filters.rest_framework import DjangoFilterBackend
 
 
@@ -115,7 +115,6 @@ class ReportViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'delete']
 
     def list(self, request):
-        print(request.user.role)
         return Response(serializers.ReportSerializer(Report.objects.all(), many=True).data)
     
     def create(self, request):
@@ -142,6 +141,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'list':
             permission_classes = [CanSeeApplications]
+        elif self.action == 'inwork':
+            permission_classes=[ManagerRole]
         else:
             permission_classes = [ClientRole]
         return [permission() for permission in permission_classes]
@@ -154,7 +155,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 serializer = serializers.ApplicationGetSerializers(queryset, many=True)
                 return Response(serializer.data)
             else:
-                raise Exception
+                raise PermissionDeniedException
         elif self.request.user.role == 'manager':
             manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
             author_clients = [c.id for c in manager_clients]
@@ -168,13 +169,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 serializer = serializers.ApplicationGetSerializers(queryset, many=True)
                 return Response(serializer.data)
             else:
-                raise Exception
+                raise PermissionDeniedException
         else:
             queryset = self.filter_queryset(self.queryset)
-            print(self.request.query_params)
             serializer = serializers.ApplicationGetSerializers(queryset, many=True)
             return Response(serializer.data)
-
 
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -186,4 +185,39 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
-        
+
+    @action(
+        methods=['PATCH',],
+        detail=False,
+        url_path=f'inwork/(?P<pk>[0-9]+)',
+    )
+    def inwork(self, request, pk=None):
+        application = get_object_or_404(Application, pk=pk)
+        manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
+        author_clients = [c.id for c in manager_clients]
+        # print(author_clients)
+        # print(application.author_client.id)
+        if application.author_client.id in author_clients:
+            application.status = 'inwork'
+            application.save()
+            return Response({"message": "Статус заявки обновлен на 'в работе'!"}, status=status.HTTP_200_OK)
+        else:
+            raise PermissionDeniedException
+
+
+class StorageViewSet(viewsets.ModelViewSet):
+    queryset = Storage.objects.all()
+    serializer_class = serializers.StorageSerializer
+    permission_classes = (DirectorRole, )
+
+    http_method_names = ['get', 'post']
+
+    def list(self, request):
+        return Response(serializers.StorageSerializer(Storage.objects.all(), many=True).data)
+    
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

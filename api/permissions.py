@@ -11,8 +11,15 @@ class ClientRole(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.role == 'client'
         
+        
 class CanSeeApplications(permissions.BasePermission):
 
     def has_permission(self, request, view):
         if request.method == 'GET':
             return request.user.role == 'manager' or request.user.role == 'client' or request.user.role == 'director'
+        
+
+class DirectorRole(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        return request.user.role == 'director'

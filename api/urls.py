@@ -12,5 +12,6 @@ router.register('logout', views.LogoutViewSet, basename='logout')
 
 router.register('report', views.ReportViewSet, basename='report')
 router.register('application', views.ApplicationViewSet, basename='application')
+router.register('storage', views.StorageViewSet, basename='storage')
 
 urlpatterns = router.urls

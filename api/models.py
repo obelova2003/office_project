@@ -1,6 +1,8 @@
 from django.db import models
 
 from django.contrib.auth.models import AbstractUser 
+from .validators import validate_host
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 ROLES = (
     ('client', 'Клиент'),
@@ -82,3 +84,23 @@ class Application(models.Model):
 
     def __str__(self):
         return f'Заявка № {self.number}'
+
+
+class Storage(models.Model):
+    host = models.CharField(validators=(validate_host,),
+                            max_length=100, verbose_name= 'Хост')
+    port = models.IntegerField(validators=[MinValueValidator(1),
+                                           MaxValueValidator(999999)],
+                               verbose_name='Порт')
+    user = models.CharField(max_length=100, default='user', verbose_name= 'Логин')
+    password = models.CharField(max_length=100, default='password', verbose_name= 'Пароль')
+    name = models.CharField(max_length=100, unique=True, verbose_name='Название')
+    table = models.CharField(max_length=100, unique=True, verbose_name='Таблица')
+    column = models.CharField(max_length=100, unique=True, verbose_name='Столбец')
+
+    class Meta:
+        verbose_name = 'Хранилище'
+        verbose_name_plural = 'Хранилища'
+
+    def __str__(self):
+        return self.name
