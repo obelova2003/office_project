@@ -412,6 +412,31 @@ dev = ["build", "hatch"]
 doc = ["sphinx"]
 
 [[package]]
+name = "thread"
+version = "2.0.3"
+description = "Threading module extension"
+optional = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "thread-2.0.3-py3-none-any.whl", hash = "sha256:0b3653559e3c8ecb9b71da84195cff030fb2df44173be2b6312a0c0bb081738a"},
+    {file = "thread-2.0.3.tar.gz", hash = "sha256:ff8db32a0c10e1147bfa2d3dfc113e3916961e5abfbbfbc8bc7f6da9fe2cc360"},
+]
+
+[package.dependencies]
+typing-extensions = ">=4.9.0,<5.0.0"
+
+[[package]]
+name = "typing-extensions"
+version = "4.12.2"
+description = "Backported and Experimental Type Hints for Python 3.8+"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
+    {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
+]
+
+[[package]]
 name = "tzdata"
 version = "2024.1"
 description = "Provider of IANA time zone data"
@@ -436,4 +461,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "314a74c56073552b8daa668932d42ce0c62bcd8b67ebd18b265adce1fccc721d"
+content-hash = "261a8f5aa3d6a1d7d65f4c87848bc39039449eaf3ee32d58aad27c0f9fa0fc2e"

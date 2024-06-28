@@ -1,3 +1,4 @@
+from datetime import time
 from django.shortcuts import get_object_or_404, render
 from rest_framework.response import Response
 from rest_framework import viewsets, status
@@ -9,11 +10,13 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
+from api.move_storage import move
 from api.permissions import ManagerRole, ClientRole, CanSeeApplications, DirectorRole
 from api.filters import ApplicationFilter
 from api.exceptions import PermissionDeniedException
 from django_filters.rest_framework import DjangoFilterBackend
 
+import threading
 
 class OfficeUserViewSet(viewsets.ModelViewSet):
     queryset = OfficeUser.objects.all()
@@ -141,7 +144,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'list':
             permission_classes = [CanSeeApplications]
-        elif self.action == 'inwork':
+        elif self.action == 'inwork' or self.action == 'executed':
             permission_classes=[ManagerRole]
         else:
             permission_classes = [ClientRole]
@@ -195,14 +198,33 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         application = get_object_or_404(Application, pk=pk)
         manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
         author_clients = [c.id for c in manager_clients]
-        # print(author_clients)
-        # print(application.author_client.id)
-        if application.author_client.id in author_clients:
+        if application.author_client.id in author_clients and application.status == 'created':
             application.status = 'inwork'
             application.save()
-            return Response({"message": "Статус заявки обновлен на 'в работе'!"}, status=status.HTTP_200_OK)
+            move_thread = threading.Thread(target=move, 
+                                       args=(application.count, application.storage_name_from, 
+                                             application.storage_name_to, application))
+            move_thread.start()
+            return Response({"message": f"Статус заявки обновлен на 'в работе'!"}, status=status.HTTP_200_OK)
         else:
             raise PermissionDeniedException
+        
+    
+    #@action(
+    #    methods=['PATCH',], 
+    #    detail=False,
+    #    url_path=f'executed/(?P<pk>[0-9]+)',
+    #)
+    #def executed(self, request, pk=None):
+    #    application = get_object_or_404(Application, pk=pk)
+    #    manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
+    #    author_clients = [c.id for c in manager_clients]
+    #    if application.author_client.id in author_clients and application.status == 'inwork':
+    #        application.status = 'executed'
+    #        application.save()
+    #        return Response({"message": f"Работа с заявкой закончена!"}, status=status.HTTP_200_OK)
+    #    else:
+    #        raise PermissionDeniedException
 
 
 class StorageViewSet(viewsets.ModelViewSet):

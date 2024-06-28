@@ -71,8 +71,8 @@ class Application(models.Model):
                                         null=True,
                                         blank=True)
     title = models.CharField(max_length=250, verbose_name='Заголовок')
-    storage_name_from  = models.CharField(max_length=250, verbose_name='Хранилище начальное')
-    storage_name_to = models.CharField(max_length=250, verbose_name='Хранилище конечное')
+    storage_name_from  = models.IntegerField(verbose_name='Номер хранилища начального')
+    storage_name_to = models.IntegerField(verbose_name='Номер хранилища конечного')
     status = models.CharField(max_length=100, choices=STATUS, verbose_name='Статус')
     count = models.IntegerField(verbose_name='Кол-во')
     create_date = models.DateField(auto_now_add=True, verbose_name='Дата создания')
