@@ -82,6 +82,14 @@ class ApplicationGetSerializers(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ApplicationStatusSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Application
+        fields = ()
+        read_only_fields = ('number', 'title', 'storage_name_from', 'storage_name_to', 'count', 'author_client', 'status', )
+
+
 class StorageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Storage

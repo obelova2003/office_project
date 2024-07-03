@@ -6,6 +6,6 @@ class PermissionDeniedException(APIException):
     default_detail = 'Вы не можете просматривать данные заявки!'
     
 
-class DataBaseException(APIException):
+class DataBaseConnectException(APIException):
     status_code = 400
     default_detail = 'Такой базы данных не существует или введены неверные данные!'

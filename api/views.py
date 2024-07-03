@@ -29,17 +29,6 @@ class OfficeUserViewSet(viewsets.ModelViewSet):
         data['password'] = make_password(password)
         return data
 
-    # def create(self, request):
-    #     data = request.data.copy()
-    #     print(data)
-    #     password = data.get('password')
-    #     hashed_password = make_password(password)
-    #     data['password'] = hashed_password
-    #     serializer = self.get_serializer(data=data)
-    #     serializer.is_valid(raise_exception=True)
-    #     headers = self.get_success_headers(serializer.data)
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-    
     def get_serializer_class(self):        
         if self.action == "manager_create":
             return serializers.ManagerSerializer
@@ -139,8 +128,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = ApplicationFilter
 
-    http_method_names = ['get', 'post', 'patch']
+    http_method_names = ['get', 'post', 'patch', 'put']
     
+    def get_serializer_class(self):        
+        if self.action == "inwork":
+            return serializers.ApplicationStatusSerializer
+        else:
+            return serializers.ApplicationSerializer
+        
+        
     def get_permissions(self):
         if self.action == 'list':
             permission_classes = [CanSeeApplications]
@@ -154,13 +150,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if request.user.role == 'client':
             if not self.request.query_params:
                 user = request.user
-                queryset = Application.objects.filter(author_client=user)
+                queryset = Application.objects.filter(author_client=user).select_related('author_client')
                 serializer = serializers.ApplicationGetSerializers(queryset, many=True)
                 return Response(serializer.data)
             else:
                 raise PermissionDeniedException
         elif self.request.user.role == 'manager':
-            manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
+            manager_clients = OfficeUser.objects.filter(manager=request.user).prefetch_related('application_set')
             author_clients = [c.id for c in manager_clients]
             params = []
             if self.request.query_params:
@@ -189,10 +185,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
 
+
     @action(
-        methods=['PATCH',],
-        detail=False,
-        url_path=f'inwork/(?P<pk>[0-9]+)',
+        methods=['PUT'],
+        detail=True,
+        url_path='inwork',
     )
     def inwork(self, request, pk=None):
         application = get_object_or_404(Application, pk=pk)
@@ -201,31 +198,15 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if application.author_client.id in author_clients and application.status == 'created':
             application.status = 'inwork'
             application.save()
+            storage_to = get_object_or_404(Storage, name = application.storage_name_to)
+            storage_from = get_object_or_404(Storage, name = application.storage_name_from)
             move_thread = threading.Thread(target=move, 
-                                       args=(application.count, application.storage_name_from, 
-                                             application.storage_name_to, application))
+                                       args=(storage_to, storage_from, application))
             move_thread.start()
             return Response({"message": f"Статус заявки обновлен на 'в работе'!"}, status=status.HTTP_200_OK)
         else:
             raise PermissionDeniedException
         
-    
-    #@action(
-    #    methods=['PATCH',], 
-    #    detail=False,
-    #    url_path=f'executed/(?P<pk>[0-9]+)',
-    #)
-    #def executed(self, request, pk=None):
-    #    application = get_object_or_404(Application, pk=pk)
-    #    manager_clients = OfficeUser.objects.filter(manager_id=request.user.id)
-    #    author_clients = [c.id for c in manager_clients]
-    #    if application.author_client.id in author_clients and application.status == 'inwork':
-    #        application.status = 'executed'
-    #        application.save()
-    #        return Response({"message": f"Работа с заявкой закончена!"}, status=status.HTTP_200_OK)
-    #    else:
-    #        raise PermissionDeniedException
-
 
 class StorageViewSet(viewsets.ModelViewSet):
     queryset = Storage.objects.all()
